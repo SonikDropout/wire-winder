@@ -21,7 +21,7 @@ enum winderState
   BEGIN,
   WIND,
   END,
-  IDLE
+  PAUSED
 };
 winderState state = HOMING;
 
@@ -58,16 +58,16 @@ void loop()
     break;
   case END:
     windEnd();
-    winderState = IDLE;
+    winderState = PAUSED;
     break;
   }
 }
 
 void checkSerial()
 {
-  if (Serail.available() > 0)
+  if (Serial.available() > 0)
   {
-    String cmd = Serail.readStringUntil('\n');
+    String cmd = Serial.readStringUntil('\n');
     if (cmd == "Start")
     {
       winderState = HOMING;
@@ -117,23 +117,12 @@ void windBegin()
   //Задаем для каретки правое направление движения
   digitalWrite(dirPinM, HIGH);
   // Делаем затравочные 3 витка на месте:
-  makeRevolutions(beginRevolutions);
+  rotateShaft(beginRevolutions);
 }
 
 void windEnd()
 {
-  makeRevolutions(endRevolutions);
-}
-
-void makeRevolutions(int revolutions)
-{
-  for (int i = 0; i < stepsPerRevM * revolutions; i++)
-  {
-    digitalWrite(stepPinR, HIGH);
-    delayMicroseconds(60);
-    digitalWrite(stepPinR, LOW);
-    delayMicroseconds(420);
-  }
+  rotateShaft(endRevolutions);
 }
 
 void windWire()
