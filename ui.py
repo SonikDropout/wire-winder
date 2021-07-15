@@ -71,7 +71,6 @@ class App(tk.Frame):
         self.connectButton.configure(text="Connect")
         for input in self.inputs:
             input['state'] = tk.DISABLED
-        self.startButton['state'] = tk.DISABLED
 
     def create_input(self, paramName):
         variable = tk.StringVar(self, '0')
@@ -79,7 +78,7 @@ class App(tk.Frame):
         label = tk.Label(self, text=paramName)
         label.grid(sticky=tk.W)
         input = tk.Spinbox(self, from_=0, to=100, width=42,
-                           textvariable=variable, command=send_to_serial)
+                           textvariable=variable, command=send_to_serial, increment=0.1)
         input.grid(columnspan=3)
         input.bind('<Return>', send_to_serial)
         input['state'] = tk.DISABLED
