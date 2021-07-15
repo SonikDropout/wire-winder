@@ -37,14 +37,6 @@ class App(tk.Frame):
         for param in ['Begin winds', 'End winds', 'Length wind', 'Step wind']:
             self.create_input(param)
 
-        self.startButton = tk.Button(
-            self, command=self.send_start_command, text="Start")
-        self.startButton['state'] = tk.DISABLED
-        self.startButton.grid(column=0, sticky=tk.W, pady=5, padx=5)
-
-    def send_start_command(self):
-        self.serial.write(bytes('Start\n', 'ascii'))
-
     def get_port_list(self):
         return list(map(lambda port: port.name, list_ports.comports()))
 

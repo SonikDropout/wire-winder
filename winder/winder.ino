@@ -6,14 +6,15 @@
 #define dirPinM 5
 #define stepPinM 6
 #define endstopPin 12
+#define buttonPin 10
 #define stepsPerRevR 800
-#define stepsPerRevM 3200
+#define stepsPerRevM 800
 #define leadScrewStep 2.5
 int sign = 1;
 int beginRevolutions = 3;
 int endRevolutions = 3;
-float windStep = 2.0;
-float windLength = 40.0;
+float windStep = 2.5;
+float windLength = 25.0;
 
 enum winderState
 {
@@ -21,14 +22,16 @@ enum winderState
   BEGIN,
   WIND,
   END,
-  PAUSED
+  PAUSED,
+  PAUSED_HOME
 };
-winderState state = HOMING;
+winderState state = PAUSED;
 
 void setup()
 {
   //Задаем входной пин для концевика и поддтягиваем этот пин
   pinMode(endstopPin, INPUT_PULLUP);
+  pinMode(buttonPin, INPUT_PULLUP);
   // Задаем пины для управления моторами:
   pinMode(stepPinR, OUTPUT);
   pinMode(dirPinR, OUTPUT);
@@ -42,24 +45,36 @@ void loop()
 {
   checkSerial();
 
-  switch (winderState)
+  bool buttonPressed = !(digitalRead(buttonPin));
+
+  switch (state)
   {
-  case HOMING:
-    homeCarriage();
-    winderState = BEGIN;
-    break;
-  case BEGIN:
-    windBegin();
-    winderState = WIND;
-    break;
-  case WIND:
-    windWire();
-    winderState = END;
-    break;
-  case END:
-    windEnd();
-    winderState = PAUSED;
-    break;
+    case HOMING:
+      homeCarriage();
+      state = PAUSED_HOME;
+      break;
+    case BEGIN:
+      windBegin();
+      state = WIND;
+      break;
+    case WIND:
+      windWire();
+      state = END;
+      break;
+    case END:
+      windEnd();
+      state = PAUSED;
+      break;
+    case PAUSED:
+      if (buttonPressed) {
+        state = HOMING;
+        break;
+      }
+    case PAUSED_HOME:
+      if (buttonPressed) {
+        state = BEGIN;
+        break;
+      }
   }
 }
 
@@ -68,35 +83,31 @@ void checkSerial()
   if (Serial.available() > 0)
   {
     String cmd = Serial.readStringUntil('\n');
-    if (cmd == "Start")
-    {
-      winderState = HOMING;
-      return;
-    }
     char cmdID = cmd.charAt(0);
-    int value = cmd.substring(1);
+    String value = cmd.substring(1);
     switch (cmdID)
     {
-    case 'S':
-      windStep = value.toFloat();
-      break;
-    case 'L':
-      windLength = value.toFloat();
-      break;
-    case 'B':
-      beginRevolutions = value.toInt();
-    case 'E':
-      endRevolutions = value.toInt();
-      break;
-    default:
-      Serial.write('ERROR');
-      break;
+      case 'S':
+        windStep = value.toFloat();
+        break;
+      case 'L':
+        windLength = value.toFloat();
+        break;
+      case 'B':
+        beginRevolutions = value.toInt();
+      case 'E':
+        endRevolutions = value.toInt();
+        break;
+      default:
+        Serial.write('ERROR');
+        break;
     }
   }
 }
 
 void homeCarriage()
 {
+  sign = digitalRead(endstopPin);
   //Задаем для каретки левое направление движения
   digitalWrite(dirPinM, LOW);
   //Едем к концевику
@@ -127,7 +138,7 @@ void windEnd()
 
 void windWire()
 {
-  float step = 0.01;
+  float step = 0.1;
   float revolutionsPerStep = step / windStep;
 
   float moved = 0.0;
